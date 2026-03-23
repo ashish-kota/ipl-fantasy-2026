@@ -1,0 +1,25 @@
+# Virtual environment
+ipl/
+venv/
+env/
+
+# Database (contains user data - don't commit)
+data/ipl_fantasy.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Streamlit cache
+.streamlit/secrets.toml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
