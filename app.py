@@ -1,6 +1,6 @@
 import streamlit as st
 from utils.database import init_db, verify_user, create_user
-from utils.nav import render_sidebar, HIDE_SIDEBAR_NAV_CSS
+from utils.nav import render_sidebar, HIDE_AUTO_NAV_CSS
 
 st.set_page_config(
     page_title="IPL Fantasy 2026",
@@ -111,5 +111,5 @@ else:
         "Use the sidebar to navigate.</p>",
         unsafe_allow_html=True,
     )
-    st.markdown(HIDE_SIDEBAR_NAV_CSS, unsafe_allow_html=True)
+    st.markdown(HIDE_AUTO_NAV_CSS, unsafe_allow_html=True)
     st.info("👈 Use the sidebar to go to Dashboard, Predictions, or Leaderboard.")
