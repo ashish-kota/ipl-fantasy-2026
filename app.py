@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.database import init_db, verify_user, create_user
+from utils.nav import render_sidebar, HIDE_SIDEBAR_NAV_CSS
 
 st.set_page_config(
     page_title="IPL Fantasy 2026",
@@ -93,21 +94,7 @@ def show_login_page():
 
 
 def show_sidebar():
-    user = st.session_state.user
-    with st.sidebar:
-        st.markdown(f"### 👤 {user['display_name']}")
-        st.markdown(f"🏏 **Team:** {user.get('team_name', '—')}")
-        st.markdown(f"📧 {user.get('email', '')}")
-        st.divider()
-        st.page_link("app.py", label="🏠 Home")
-        st.page_link("pages/1_Home.py", label="📊 Dashboard")
-        st.page_link("pages/2_Predictions.py", label="🎯 Predictions")
-        st.page_link("pages/3_Leaderboard.py", label="🏆 Leaderboard")
-        if user.get("role") == "admin":
-            st.page_link("pages/4_Admin.py", label="⚙️ Admin Panel")
-        st.divider()
-        if st.button("🚪 Logout", use_container_width=True):
-            logout()
+    render_sidebar(st.session_state.user, logout)
 
 
 if not st.session_state.logged_in:
@@ -124,4 +111,5 @@ else:
         "Use the sidebar to navigate.</p>",
         unsafe_allow_html=True,
     )
+    st.markdown(HIDE_SIDEBAR_NAV_CSS, unsafe_allow_html=True)
     st.info("👈 Use the sidebar to go to Dashboard, Predictions, or Leaderboard.")
