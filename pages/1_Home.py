@@ -14,6 +14,7 @@ from utils.database import (
     update_user_profile,
     change_password,
 )
+from utils.nav import render_sidebar
 
 st.set_page_config(page_title="Dashboard | IPL Fantasy 2026", page_icon="📊", layout="wide")
 init_db()
@@ -32,20 +33,7 @@ def logout():
     st.rerun()
 
 
-with st.sidebar:
-    st.markdown(f"### 👤 {user['display_name']}")
-    st.markdown(f"🏏 **Team:** {user.get('team_name', '—')}")
-    st.markdown(f"📧 {user.get('email', '')}")
-    st.divider()
-    st.page_link("app.py", label="🏠 Home")
-    st.page_link("pages/1_Home.py", label="📊 Dashboard")
-    st.page_link("pages/2_Predictions.py", label="🎯 Predictions")
-    st.page_link("pages/3_Leaderboard.py", label="🏆 Leaderboard")
-    if user.get("role") == "admin":
-        st.page_link("pages/4_Admin.py", label="⚙️ Admin Panel")
-    st.divider()
-    if st.button("🚪 Logout", use_container_width=True):
-        logout()
+render_sidebar(user, logout)
 
 st.title("📊 Dashboard")
 st.markdown(f"Welcome back, **{user['display_name']}**! Here's your IPL Fantasy overview.")

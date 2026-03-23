@@ -14,6 +14,7 @@ from utils.database import (
     get_all_predictions,
     compute_leaderboard,
 )
+from utils.nav import render_sidebar
 
 st.set_page_config(page_title="Admin Panel | IPL Fantasy 2026", page_icon="⚙️", layout="wide")
 init_db()
@@ -39,19 +40,7 @@ def logout():
     st.rerun()
 
 
-with st.sidebar:
-    st.markdown(f"### 👤 {user['display_name']}")
-    st.markdown(f"🏏 **Team:** {user.get('team_name', '—')}")
-    st.markdown(f"📧 {user.get('email', '')}")
-    st.divider()
-    st.page_link("app.py", label="🏠 Home")
-    st.page_link("pages/1_Home.py", label="📊 Dashboard")
-    st.page_link("pages/2_Predictions.py", label="🎯 Predictions")
-    st.page_link("pages/3_Leaderboard.py", label="🏆 Leaderboard")
-    st.page_link("pages/4_Admin.py", label="⚙️ Admin Panel")
-    st.divider()
-    if st.button("🚪 Logout", use_container_width=True):
-        logout()
+render_sidebar(user, logout)
 
 
 # ── Page header ───────────────────────────────────────────────────────────────
