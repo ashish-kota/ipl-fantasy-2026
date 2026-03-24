@@ -183,10 +183,9 @@ else:
 
                 # ── Ask QGenie button ──────────────────────────────────────
                 st.markdown("---")
-                ai_key = f"ai_result_{mid}"
-                if st.button("🤖 Ask QGenie", key=f"qgenie_btn_{mid}", use_container_width=True, help="Get AI-powered match prediction"):
+                if st.button("🤖 Ask QGenie", key=f"qgenie_btn_{mid}", use_container_width=True, help="Get a fresh AI-powered match prediction"):
                     with st.spinner("🤖 QGenie is analysing the match..."):
-                        result = get_ai_prediction(
+                        ai = get_ai_prediction(
                             team1=row["team1"],
                             team2=row["team2"],
                             venue=row["venue"],
@@ -194,11 +193,7 @@ else:
                             match_date=row["match_date"].strftime("%d %b %Y"),
                             match_time=row["match_time"],
                         )
-                        st.session_state[ai_key] = result
 
-                # Show cached AI result if available
-                if ai_key in st.session_state:
-                    ai = st.session_state[ai_key]
                     if "error" in ai:
                         st.error(f"QGenie error: {ai['error']}")
                     else:
@@ -220,7 +215,7 @@ else:
                             unsafe_allow_html=True,
                         )
 
-                        with st.expander("📊 View Full Analysis", expanded=False):
+                        with st.expander("📊 View Full Analysis", expanded=True):
                             icons = ["📈", "⚔️", "🏟️", "⭐", "🩺"]
                             for i, factor in enumerate(factors):
                                 icon = icons[i] if i < len(icons) else "•"
