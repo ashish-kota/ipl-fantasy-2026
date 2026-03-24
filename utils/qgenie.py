@@ -61,9 +61,13 @@ def get_ai_prediction(team1: str, team2: str, venue: str, city: str, match_date:
 
         raw_content = response.choices[0].message.content.strip()
 
+        # Strip <think>...</think> reasoning block if present
+        raw_content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
+
         # Strip markdown code fences if present
         raw_content = re.sub(r"^```(?:json)?\s*", "", raw_content)
-        raw_content = re.sub(r"\s*```$", "", raw_content)
+        raw_content = re.sub(r"\s*```$", "", raw_content.strip())
+        raw_content = raw_content.strip()
 
         result = json.loads(raw_content)
         return result
