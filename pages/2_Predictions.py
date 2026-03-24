@@ -16,6 +16,7 @@ from utils.database import (
 )
 from utils.nav import render_sidebar
 from utils.teams import get_logo, get_short
+from utils.qgenie import get_ai_prediction
 
 st.set_page_config(page_title="Predictions | IPL Fantasy 2026", page_icon="🎯", layout="wide")
 init_db()
@@ -179,6 +180,56 @@ else:
                         st.rerun()
                     else:
                         st.error(f"Error: {msg}")
+
+                # ── Ask QGenie button ──────────────────────────────────────
+                st.markdown("---")
+                ai_key = f"ai_result_{mid}"
+                if st.button("🤖 Ask QGenie", key=f"qgenie_btn_{mid}", use_container_width=True, help="Get AI-powered match prediction"):
+                    with st.spinner("🤖 QGenie is analysing the match..."):
+                        result = get_ai_prediction(
+                            team1=row["team1"],
+                            team2=row["team2"],
+                            venue=row["venue"],
+                            city=row["city"],
+                            match_date=row["match_date"].strftime("%d %b %Y"),
+                            match_time=row["match_time"],
+                        )
+                        st.session_state[ai_key] = result
+
+                # Show cached AI result if available
+                if ai_key in st.session_state:
+                    ai = st.session_state[ai_key]
+                    if "error" in ai:
+                        st.error(f"QGenie error: {ai['error']}")
+                    else:
+                        winner = ai.get("predicted_winner", "")
+                        prob = ai.get("win_probability", "")
+                        headline = ai.get("headline", "")
+                        factors = ai.get("factors", [])
+
+                        st.markdown(
+                            f"<div style='background:#0d2137; border:1px solid #1e88e5; "
+                            f"border-radius:10px; padding:12px; margin-top:8px;'>"
+                            f"<div style='color:#1e88e5; font-size:0.75em; font-weight:bold; "
+                            f"margin-bottom:4px;'>🤖 QGENIE PREDICTION</div>"
+                            f"<div style='color:#ffd700; font-weight:bold; font-size:0.95em;'>"
+                            f"🏆 {winner} &nbsp;·&nbsp; {prob}</div>"
+                            f"<div style='color:#e0e0e0; font-size:0.82em; margin-top:4px; "
+                            f"font-style:italic;'>{headline}</div>"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+
+                        with st.expander("📊 View Full Analysis", expanded=False):
+                            icons = ["📈", "⚔️", "🏟️", "⭐", "🩺"]
+                            for i, factor in enumerate(factors):
+                                icon = icons[i] if i < len(icons) else "•"
+                                st.markdown(
+                                    f"**{icon} {factor.get('title', '')}**  \n"
+                                    f"{factor.get('detail', '')}"
+                                )
+                                if i < len(factors) - 1:
+                                    st.markdown("---")
 
             st.divider()
 

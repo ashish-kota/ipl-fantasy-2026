@@ -1,0 +1,74 @@
+"""
+QGenie AI prediction helper for IPL Fantasy 2026.
+Loads prompt config from data/prompt.json and calls the QGenie LLM API.
+"""
+
+import json
+import os
+import re
+import streamlit as st
+from qgenie import QGenieClient
+
+
+PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "prompt.json")
+
+
+def _load_prompt_config() -> dict:
+    with open(PROMPT_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _get_client() -> QGenieClient:
+    api_key = st.secrets.get("QGENIE_API_KEY", "")
+    endpoint = st.secrets.get("QGENIE_ENDPOINT", "https://qgenie-chat.qualcomm.com")
+    if not api_key:
+        raise ValueError("QGENIE_API_KEY not found in .streamlit/secrets.toml")
+    return QGenieClient(endpoint=endpoint, api_key=api_key)
+
+
+def get_ai_prediction(team1: str, team2: str, venue: str, city: str, match_date: str, match_time: str) -> dict:
+    """
+    Call QGenie LLM and return a structured prediction dict:
+    {
+        "predicted_winner": str,
+        "win_probability": str,
+        "headline": str,
+        "factors": [{"title": str, "detail": str}, ...]
+    }
+    Returns None on error, with an "error" key.
+    """
+    try:
+        config = _load_prompt_config()
+        client = _get_client()
+
+        user_message = config["user_template"].format(
+            team1=team1,
+            team2=team2,
+            venue=venue,
+            city=city,
+            match_date=match_date,
+            match_time=match_time,
+        )
+
+        response = client.chat(
+            messages=[
+                {"role": "system", "content": config["system"]},
+                {"role": "user", "content": user_message},
+            ],
+            max_tokens=config.get("max_tokens", 600),
+            model=config.get("model", "gpt-oss-120b"),
+        )
+
+        raw_content = response.choices[0].message.content.strip()
+
+        # Strip markdown code fences if present
+        raw_content = re.sub(r"^```(?:json)?\s*", "", raw_content)
+        raw_content = re.sub(r"\s*```$", "", raw_content)
+
+        result = json.loads(raw_content)
+        return result
+
+    except json.JSONDecodeError as e:
+        return {"error": f"LLM returned non-JSON response: {e}", "raw": raw_content}
+    except Exception as e:
+        return {"error": str(e)}
