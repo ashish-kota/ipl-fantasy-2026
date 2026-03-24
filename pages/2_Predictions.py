@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, date
+from datetime import date
 import sys
 import os
 
@@ -14,6 +14,7 @@ from utils.database import (
     save_prediction,
 )
 from utils.nav import render_sidebar
+from utils.teams import get_logo, get_short
 
 st.set_page_config(page_title="Predictions | IPL Fantasy 2026", page_icon="🎯", layout="wide")
 init_db()
@@ -50,17 +51,13 @@ matches_df = load_matches()
 results_df = get_all_results()
 user_preds = get_user_predictions(user["id"])
 
-# Build a dict: match_id -> predicted_winner
 pred_map = {}
 if not user_preds.empty:
     pred_map = dict(zip(user_preds["match_id"], user_preds["predicted_winner"]))
 
-# Build a set of completed match IDs
 completed_ids = set(results_df["match_id"].tolist()) if not results_df.empty else set()
-
 today = date.today()
 
-# Split into upcoming and past
 upcoming = matches_df[
     matches_df.apply(
         lambda r: r["match_date"].date() >= today and r["match_id"] not in completed_ids,
@@ -90,6 +87,36 @@ if pending_upcoming > 0:
 
 st.divider()
 
+# ── Helper: render a team card with logo ──────────────────────────────────────
+def team_card(team_name: str, is_selected: bool):
+    logo = get_logo(team_name)
+    short = get_short(team_name)
+    border = "2px solid #2ecc71" if is_selected else "1px solid #333"
+    bg = "#1a472a" if is_selected else "#1a1a2e"
+    badge = "<br><span style='color:#2ecc71; font-size:0.8em;'>✅ Your Pick</span>" if is_selected else ""
+
+    if logo:
+        st.markdown(
+            f"<div style='text-align:center; padding:10px; background:{bg}; "
+            f"border-radius:12px; border:{border};'>{badge}</div>",
+            unsafe_allow_html=True,
+        )
+        st.image(logo, width=80, use_container_width=False)
+        st.markdown(
+            f"<div style='text-align:center; color:white; font-weight:bold; "
+            f"font-size:0.85em; margin-top:4px;'>{short}<br>"
+            f"<span style='font-size:0.75em; color:#aaa;'>{team_name}</span></div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"<div style='text-align:center; padding:12px; background:{bg}; "
+            f"border-radius:12px; color:white; border:{border};'>"
+            f"<b>{team_name}</b>{badge}</div>",
+            unsafe_allow_html=True,
+        )
+
+
 # ── Upcoming matches ──────────────────────────────────────────────────────────
 st.subheader("📅 Upcoming Matches — Make Your Picks")
 
@@ -104,41 +131,23 @@ else:
         with st.container():
             st.markdown(
                 f"**Match {mid}** &nbsp;|&nbsp; 📅 {match_date_str} &nbsp;|&nbsp; "
-                f"⏰ {row['match_time']} &nbsp;|&nbsp; 🏟️ {row['venue']}, {row['city']}"
+                f"⏰ {row['match_time']} &nbsp;|&nbsp; 📍 {row['city']}"
             )
 
             col_t1, col_vs, col_t2, col_pred = st.columns([2, 1, 2, 3])
 
             with col_t1:
-                t1_selected = existing_pred == row["team1"]
-                st.markdown(
-                    f"<div style='text-align:center; padding:12px; "
-                    f"background:{'#1a472a' if t1_selected else '#1a1a2e'}; "
-                    f"border-radius:10px; color:white; border: {'2px solid #2ecc71' if t1_selected else 'none'};'>"
-                    f"<b>{row['team1']}</b>"
-                    f"{'<br>✅ Your Pick' if t1_selected else ''}"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
+                team_card(row["team1"], existing_pred == row["team1"])
 
             with col_vs:
                 st.markdown(
-                    "<div style='text-align:center; padding:12px; color:#ffd700; font-size:1.2em;'>"
-                    "<b>VS</b></div>",
+                    "<div style='text-align:center; padding:30px 0; color:#ffd700; "
+                    "font-size:1.4em; font-weight:bold;'>VS</div>",
                     unsafe_allow_html=True,
                 )
 
             with col_t2:
-                t2_selected = existing_pred == row["team2"]
-                st.markdown(
-                    f"<div style='text-align:center; padding:12px; "
-                    f"background:{'#1a472a' if t2_selected else '#1a1a2e'}; "
-                    f"border-radius:10px; color:white; border: {'2px solid #2ecc71' if t2_selected else 'none'};'>"
-                    f"<b>{row['team2']}</b>"
-                    f"{'<br>✅ Your Pick' if t2_selected else ''}"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
+                team_card(row["team2"], existing_pred == row["team2"])
 
             with col_pred:
                 options = [row["team1"], row["team2"]]
@@ -150,8 +159,9 @@ else:
                     choice = st.radio(
                         "Pick the winner:",
                         options=options,
+                        format_func=lambda t: f"{get_short(t)} — {t}",
                         index=default_idx,
-                        horizontal=True,
+                        horizontal=False,
                         key=f"radio_{mid}",
                     )
                     btn_label = "Update Pick ✏️" if existing_pred else "Submit Pick 🎯"
@@ -174,7 +184,6 @@ with st.expander("📜 Past Matches & Your Predictions", expanded=False):
     if past.empty:
         st.info("No past matches yet.")
     else:
-        # Merge results
         past_merged = past.merge(
             results_df.rename(columns={"winner": "actual_winner"}),
             on="match_id",
@@ -189,21 +198,27 @@ with st.expander("📜 Past Matches & Your Predictions", expanded=False):
 
             result_icon = ""
             if pd.notna(actual) and actual != "":
-                if my_pick == actual:
-                    result_icon = "✅"
-                elif my_pick == "—":
-                    result_icon = "⚠️ No pick"
-                else:
-                    result_icon = "❌"
+                result_icon = "✅" if my_pick == actual else ("⚠️ No pick" if my_pick == "—" else "❌")
             else:
                 result_icon = "⏳"
 
             col_a, col_b, col_c, col_d = st.columns([2, 2, 2, 2])
-            col_a.markdown(f"**Match {mid}** — {match_date_str}")
-            col_b.markdown(f"⚔️ {row['team1']} vs {row['team2']}")
+
+            with col_a:
+                st.markdown(f"**Match {mid}** — {match_date_str}")
+                # Show mini logos
+                logo1 = get_logo(row["team1"])
+                logo2 = get_logo(row["team2"])
+                lc1, lc2 = st.columns(2)
+                if logo1:
+                    lc1.image(logo1, width=40)
+                if logo2:
+                    lc2.image(logo2, width=40)
+
+            col_b.markdown(f"⚔️ {get_short(row['team1'])} vs {get_short(row['team2'])}")
             col_c.markdown(f"🎯 My Pick: **{my_pick}**")
             if pd.notna(actual) and actual != "":
                 col_d.markdown(f"🏆 Winner: **{actual}** {result_icon}")
             else:
-                col_d.markdown(f"⏳ Result pending")
+                col_d.markdown("⏳ Result pending")
             st.divider()
