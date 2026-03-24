@@ -63,8 +63,8 @@ col4.metric("⏳ Pending Results", len(matches_df) - len(results_df))
 st.divider()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_results, tab_users, tab_predictions, tab_upload = st.tabs(
-    ["🏆 Enter Results", "👥 Users", "🎯 All Predictions", "📤 Upload Schedule"]
+tab_results, tab_users, tab_predictions, tab_leaderboard, tab_upload = st.tabs(
+    ["🏆 Enter Results", "👥 Users", "🎯 All Predictions", "📊 Leaderboard & Exports", "📤 Upload Schedule"]
 )
 
 
@@ -229,6 +229,112 @@ with tab_predictions:
             data=csv_preds,
             file_name="ipl_fantasy_predictions.csv",
             mime="text/csv",
+        )
+
+
+# ── Leaderboard & Exports tab ─────────────────────────────────────────────────
+with tab_leaderboard:
+    st.subheader("📊 Leaderboard")
+    st.markdown("Full rankings based on correct predictions. Download as CSV to share with the team.")
+
+    lb = compute_leaderboard()
+
+    if lb.empty:
+        st.info("No leaderboard data yet. Results need to be entered first.")
+    else:
+        results_df_lb = get_all_results()
+        completed_count = len(results_df_lb)
+
+        lc1, lc2, lc3 = st.columns(3)
+        lc1.metric("👥 Players Ranked", len(lb))
+        lc2.metric("✅ Matches Completed", completed_count)
+        top_player = lb.iloc[0]["display_name"] if len(lb) > 0 else "—"
+        lc3.metric("🥇 Current Leader", top_player)
+
+        st.divider()
+
+        # Top 3 podium
+        podium_cols = st.columns(3)
+        medals = ["🥇", "🥈", "🥉"]
+        for i, (medal, col) in enumerate(zip(medals, podium_cols)):
+            if i < len(lb):
+                row = lb.iloc[i]
+                with col:
+                    st.markdown(
+                        f"<div style='text-align:center; padding:16px; "
+                        f"background:#1a1a2e; border-radius:12px; color:white;'>"
+                        f"<div style='font-size:2em;'>{medal}</div>"
+                        f"<b>{row['display_name']}</b><br>"
+                        f"<span style='color:#aaa;'>{row['team_name']}</span><br>"
+                        f"<span style='color:#ffd700; font-size:1.3em;'>"
+                        f"{int(row['correct_predictions'])} pts</span><br>"
+                        f"<span style='color:#aaa; font-size:0.85em;'>"
+                        f"Accuracy: {row['accuracy']}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+        st.divider()
+
+        # Full table
+        display_lb = lb[["rank", "display_name", "team_name", "correct_predictions", "total_predictions", "accuracy"]].copy()
+        display_lb.columns = ["Rank", "Player", "Fantasy Team", "Correct Picks", "Total Predictions", "Accuracy"]
+        st.dataframe(display_lb, use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.subheader("📥 Download Exports")
+
+        dl1, dl2, dl3 = st.columns(3)
+
+        # Leaderboard CSV
+        lb_csv = display_lb.to_csv(index=False)
+        dl1.download_button(
+            "📊 Download Leaderboard CSV",
+            data=lb_csv,
+            file_name="ipl_fantasy_leaderboard.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+        # All predictions CSV
+        all_preds_export = get_all_predictions()
+        if not all_preds_export.empty:
+            enriched_export = all_preds_export.merge(
+                matches_df[["match_id", "team1", "team2", "match_date"]],
+                on="match_id", how="left"
+            )
+            if not results_df.empty:
+                enriched_export = enriched_export.merge(results_df, on="match_id", how="left")
+                enriched_export["correct"] = enriched_export.apply(
+                    lambda r: "Yes" if pd.notna(r.get("winner")) and r["predicted_winner"] == r["winner"]
+                    else ("No" if pd.notna(r.get("winner")) else "Pending"),
+                    axis=1,
+                )
+            else:
+                enriched_export["winner"] = None
+                enriched_export["correct"] = "Pending"
+            preds_csv = enriched_export[
+                ["match_id", "display_name", "team_name", "predicted_winner", "winner", "correct", "created_at"]
+            ].to_csv(index=False)
+            dl2.download_button(
+                "🎯 Download Predictions CSV",
+                data=preds_csv,
+                file_name="ipl_fantasy_all_predictions.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+
+        # Users CSV
+        users_export = all_users[all_users["role"] == "user"][
+            ["id", "display_name", "email", "team_name", "created_at"]
+        ].copy()
+        users_export.columns = ["ID", "Name", "Email", "Fantasy Team", "Joined"]
+        users_csv = users_export.to_csv(index=False)
+        dl3.download_button(
+            "👥 Download Users CSV",
+            data=users_csv,
+            file_name="ipl_fantasy_users.csv",
+            mime="text/csv",
+            use_container_width=True,
         )
 
 
