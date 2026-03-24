@@ -20,6 +20,11 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
 
 user = st.session_state.user
 
+# ── Admin guard ───────────────────────────────────────────────────────────────
+if user.get("role") != "admin":
+    st.error("🔒 The Leaderboard is only visible to admins. Rankings will be revealed at the end of the tournament!")
+    st.stop()
+
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 def logout():
