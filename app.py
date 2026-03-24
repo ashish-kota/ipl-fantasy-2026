@@ -76,9 +76,17 @@ def show_login_page():
                     "Create Account", use_container_width=True
                 )
 
+            ALLOWED_DOMAINS = ["@qti.qualcomm.com"]
+            ALLOWED_EMAILS = ["admin@iplf.com"]
+
             if reg_submitted:
+                email_lower = new_email.lower().strip()
+                domain_ok = any(email_lower.endswith(d) for d in ALLOWED_DOMAINS)
+                explicit_ok = email_lower in ALLOWED_EMAILS
                 if not all([new_display, new_email, new_team, new_password, new_password2]):
                     st.error("Please fill in all required fields (*).")
+                elif not (domain_ok or explicit_ok):
+                    st.error("❌ Registration is only allowed for **@qti.qualcomm.com** email addresses.")
                 elif "@" not in new_email or "." not in new_email:
                     st.error("Please enter a valid email address.")
                 elif len(new_password) < 6:
