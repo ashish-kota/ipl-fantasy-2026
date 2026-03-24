@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import date
 import sys
 import os
+import base64
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -87,34 +88,37 @@ if pending_upcoming > 0:
 
 st.divider()
 
+# ── Helper: encode image to base64 ───────────────────────────────────────────
+def img_to_b64(path: str) -> str:
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+
 # ── Helper: render a team card with logo ──────────────────────────────────────
 def team_card(team_name: str, is_selected: bool):
-    logo = get_logo(team_name)
+    logo_path = get_logo(team_name)
     short = get_short(team_name)
-    border = "2px solid #2ecc71" if is_selected else "1px solid #333"
+    border = "3px solid #2ecc71" if is_selected else "1px solid #444"
     bg = "#1a472a" if is_selected else "#1a1a2e"
-    badge = "<br><span style='color:#2ecc71; font-size:0.8em;'>✅ Your Pick</span>" if is_selected else ""
+    badge = "<div style='color:#2ecc71; font-size:0.75em; margin-bottom:6px;'>✅ Your Pick</div>" if is_selected else "<div style='height:20px;'></div>"
 
-    if logo:
-        st.markdown(
-            f"<div style='text-align:center; padding:10px; background:{bg}; "
-            f"border-radius:12px; border:{border};'>{badge}</div>",
-            unsafe_allow_html=True,
-        )
-        st.image(logo, width=80, use_container_width=False)
-        st.markdown(
-            f"<div style='text-align:center; color:white; font-weight:bold; "
-            f"font-size:0.85em; margin-top:4px;'>{short}<br>"
-            f"<span style='font-size:0.75em; color:#aaa;'>{team_name}</span></div>",
-            unsafe_allow_html=True,
-        )
+    if logo_path:
+        b64 = img_to_b64(logo_path)
+        img_tag = f"<img src='data:image/png;base64,{b64}' style='width:80px; height:80px; object-fit:contain; margin:8px auto; display:block;'/>"
     else:
-        st.markdown(
-            f"<div style='text-align:center; padding:12px; background:{bg}; "
-            f"border-radius:12px; color:white; border:{border};'>"
-            f"<b>{team_name}</b>{badge}</div>",
-            unsafe_allow_html=True,
-        )
+        img_tag = f"<div style='width:80px; height:80px; margin:8px auto; display:flex; align-items:center; justify-content:center; color:#aaa;'>🏏</div>"
+
+    html = f"""
+    <div style='text-align:center; padding:12px 8px; background:{bg};
+                border-radius:12px; border:{border}; min-height:160px;
+                display:flex; flex-direction:column; align-items:center; justify-content:center;'>
+        {badge}
+        {img_tag}
+        <div style='color:white; font-weight:bold; font-size:0.9em; margin-top:6px;'>{short}</div>
+        <div style='color:#aaa; font-size:0.75em; margin-top:2px;'>{team_name}</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 
 # ── Upcoming matches ──────────────────────────────────────────────────────────
@@ -206,14 +210,17 @@ with st.expander("📜 Past Matches & Your Predictions", expanded=False):
 
             with col_a:
                 st.markdown(f"**Match {mid}** — {match_date_str}")
-                # Show mini logos
                 logo1 = get_logo(row["team1"])
                 logo2 = get_logo(row["team2"])
-                lc1, lc2 = st.columns(2)
+                mini_imgs = ""
                 if logo1:
-                    lc1.image(logo1, width=40)
+                    b1 = img_to_b64(logo1)
+                    mini_imgs += f"<img src='data:image/png;base64,{b1}' style='width:32px; height:32px; object-fit:contain; margin-right:6px;'/>"
                 if logo2:
-                    lc2.image(logo2, width=40)
+                    b2 = img_to_b64(logo2)
+                    mini_imgs += f"<img src='data:image/png;base64,{b2}' style='width:32px; height:32px; object-fit:contain;'/>"
+                if mini_imgs:
+                    st.markdown(f"<div style='margin-top:4px;'>{mini_imgs}</div>", unsafe_allow_html=True)
 
             col_b.markdown(f"⚔️ {get_short(row['team1'])} vs {get_short(row['team2'])}")
             col_c.markdown(f"🎯 My Pick: **{my_pick}**")
