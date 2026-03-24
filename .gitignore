@@ -6,6 +6,9 @@ env/
 # Database (contains user data - don't commit)
 data/ipl_fantasy.db
 
+# Allow team logos
+!data/*.png
+
 # Python cache
 __pycache__/
 *.py[cod]
