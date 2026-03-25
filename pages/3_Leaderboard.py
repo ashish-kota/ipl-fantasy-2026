@@ -38,7 +38,7 @@ render_sidebar(user, logout)
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.title("🏆 Leaderboard")
-st.markdown("Rankings are based on correct match winner predictions.")
+st.markdown("Rankings are based on points. Scoring: **10** for correct picks, **0** for wrong picks, **5** for No Result if a prediction was recorded.")
 st.divider()
 
 # ── Load leaderboard ──────────────────────────────────────────────────────────
@@ -55,13 +55,15 @@ my_row = lb[lb["id"] == user["id"]]
 my_rank = int(my_row["rank"].values[0]) if not my_row.empty else None
 my_correct = int(my_row["correct_predictions"].values[0]) if not my_row.empty else 0
 my_total = int(my_row["total_predictions"].values[0]) if not my_row.empty else 0
+my_points = int(my_row["points"].values[0]) if not my_row.empty else 0
+my_prediction_percentage = my_row["prediction_percentage"].values[0] if not my_row.empty else "0%"
 
 # ── Stats strip ───────────────────────────────────────────────────────────────
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("👥 Total Players", len(lb))
 col2.metric("✅ Matches Completed", completed_count)
 col3.metric("🎯 Your Rank", f"#{my_rank}" if my_rank else "—")
-col4.metric("✅ Your Correct Picks", f"{my_correct} / {my_total}" if my_total else "0")
+col4.metric("🏅 Your Points", my_points)
 
 st.divider()
 
@@ -87,17 +89,17 @@ with tab_table:
                         f"<b>{row['display_name']}</b><br>"
                         f"<span style='color:#aaa;'>{row['team_name']}</span><br>"
                         f"<span style='color:#ffd700; font-size:1.3em;'>"
-                        f"{int(row['correct_predictions'])} pts</span><br>"
+                        f"{int(row['points'])} pts</span><br>"
                         f"<span style='color:#aaa; font-size:0.85em;'>"
-                        f"Accuracy: {row['accuracy']}</span>"
+                        f"Accuracy: {row['accuracy']} · Coverage: {row['prediction_percentage']}</span>"
                         f"</div>",
                         unsafe_allow_html=True,
                     )
         st.divider()
 
     # Full table
-    display_lb = lb[["rank", "display_name", "team_name", "correct_predictions", "total_predictions", "accuracy"]].copy()
-    display_lb.columns = ["Rank", "Player", "Fantasy Team", "Correct Picks", "Total Predictions", "Accuracy"]
+    display_lb = lb[["rank", "display_name", "team_name", "points", "correct_predictions", "total_predictions", "prediction_percentage", "accuracy"]].copy()
+    display_lb.columns = ["Rank", "Player", "Fantasy Team", "Points", "Correct Picks", "Total Predictions", "Prediction %", "Accuracy"]
 
     # Highlight current user
     def highlight_user(row):
@@ -114,12 +116,12 @@ with tab_table:
 
 # ── Chart tab ─────────────────────────────────────────────────────────────────
 with tab_chart:
-    st.subheader("📊 Correct Predictions — Top Players")
+    st.subheader("📊 Points — Top Players")
 
-    chart_df = lb[lb["correct_predictions"] > 0].head(20).copy()
+    chart_df = lb[lb["points"] > 0].head(20).copy()
 
     if chart_df.empty:
-        st.info("No correct predictions recorded yet. Check back after match results are entered.")
+        st.info("No points recorded yet. Check back after match results are entered.")
     else:
         chart_df["color"] = chart_df["id"].apply(
             lambda uid: "You" if uid == user["id"] else "Others"
@@ -128,12 +130,12 @@ with tab_chart:
         fig = px.bar(
             chart_df,
             x="display_name",
-            y="correct_predictions",
+            y="points",
             color="color",
             color_discrete_map={"You": "#2ecc71", "Others": "#3498db"},
-            labels={"display_name": "Player", "correct_predictions": "Correct Picks"},
-            title="Correct Predictions per Player (Top 20)",
-            text="correct_predictions",
+            labels={"display_name": "Player", "points": "Points"},
+            title="Points per Player (Top 20)",
+            text="points",
         )
         fig.update_traces(textposition="outside")
         fig.update_layout(
@@ -145,7 +147,7 @@ with tab_chart:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # Accuracy chart
+        # Prediction coverage chart
         acc_df = lb[lb["total_predictions"] > 0].copy()
         acc_df["accuracy_num"] = acc_df["correct_predictions"] / acc_df["total_predictions"] * 100
         acc_df = acc_df.sort_values("accuracy_num", ascending=False).head(20)
@@ -156,9 +158,9 @@ with tab_chart:
             y="accuracy_num",
             color=acc_df["id"].apply(lambda uid: "You" if uid == user["id"] else "Others"),
             color_discrete_map={"You": "#2ecc71", "Others": "#e74c3c"},
-            labels={"display_name": "Player", "accuracy_num": "Accuracy (%)"},
-            title="Prediction Accuracy % (Top 20)",
-            text=acc_df["accuracy_num"].apply(lambda x: f"{x:.0f}%"),
+            labels={"display_name": "Player", "accuracy_num": "Prediction Coverage (%)"},
+            title="Prediction Coverage % (Top 20)",
+            text=acc_df["prediction_percentage"],
         )
         fig2.update_traces(textposition="outside")
         fig2.update_layout(

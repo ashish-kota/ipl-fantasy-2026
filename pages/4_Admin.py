@@ -127,7 +127,7 @@ with tab_results:
                     st.warning("⏳ No result entered yet")
 
             with col_form:
-                options = [row["team1"], row["team2"]]
+                options = [row["team1"], row["team2"], "No Result"]
                 default_idx = 0
                 if pd.notna(current_winner) and current_winner in options:
                     default_idx = options.index(current_winner)
@@ -191,8 +191,9 @@ with tab_predictions:
         if not results_df.empty:
             enriched = enriched.merge(results_df, on="match_id", how="left")
             enriched["correct"] = enriched.apply(
-                lambda r: "✅" if pd.notna(r.get("winner")) and r["predicted_winner"] == r["winner"]
-                else ("❌" if pd.notna(r.get("winner")) else "⏳"),
+                lambda r: "➖ No Result" if pd.notna(r.get("winner")) and r["winner"] == "No Result"
+                else ("✅" if pd.notna(r.get("winner")) and r["predicted_winner"] == r["winner"]
+                else ("❌" if pd.notna(r.get("winner")) else "⏳")),
                 axis=1,
             )
         else:
@@ -235,7 +236,7 @@ with tab_predictions:
 # ── Leaderboard & Exports tab ─────────────────────────────────────────────────
 with tab_leaderboard:
     st.subheader("📊 Leaderboard")
-    st.markdown("Full rankings based on correct predictions. Download as CSV to share with the team.")
+    st.markdown("Full rankings based on points. Scoring: **10** for correct pick, **0** for wrong pick, **5** for No Result if a prediction was made.")
 
     lb = compute_leaderboard()
 
@@ -267,17 +268,17 @@ with tab_leaderboard:
                         f"<b>{row['display_name']}</b><br>"
                         f"<span style='color:#aaa;'>{row['team_name']}</span><br>"
                         f"<span style='color:#ffd700; font-size:1.3em;'>"
-                        f"{int(row['correct_predictions'])} pts</span><br>"
+                        f"{int(row['points'])} pts</span><br>"
                         f"<span style='color:#aaa; font-size:0.85em;'>"
-                        f"Accuracy: {row['accuracy']}</span>"
+                        f"Accuracy: {row['accuracy']} · Coverage: {row['prediction_percentage']}</span>"
                         f"</div>",
                         unsafe_allow_html=True,
                     )
         st.divider()
 
         # Full table
-        display_lb = lb[["rank", "display_name", "team_name", "correct_predictions", "total_predictions", "accuracy"]].copy()
-        display_lb.columns = ["Rank", "Player", "Fantasy Team", "Correct Picks", "Total Predictions", "Accuracy"]
+        display_lb = lb[["rank", "display_name", "team_name", "points", "correct_predictions", "total_predictions", "prediction_percentage", "accuracy"]].copy()
+        display_lb.columns = ["Rank", "Player", "Fantasy Team", "Points", "Correct Picks", "Total Predictions", "Prediction %", "Accuracy"]
         st.dataframe(display_lb, use_container_width=True, hide_index=True)
 
         st.divider()
@@ -305,15 +306,23 @@ with tab_leaderboard:
             if not results_df.empty:
                 enriched_export = enriched_export.merge(results_df, on="match_id", how="left")
                 enriched_export["correct"] = enriched_export.apply(
-                    lambda r: "Yes" if pd.notna(r.get("winner")) and r["predicted_winner"] == r["winner"]
-                    else ("No" if pd.notna(r.get("winner")) else "Pending"),
+                    lambda r: "No Result" if pd.notna(r.get("winner")) and r["winner"] == "No Result"
+                    else ("Yes" if pd.notna(r.get("winner")) and r["predicted_winner"] == r["winner"]
+                    else ("No" if pd.notna(r.get("winner")) else "Pending")),
+                    axis=1,
+                )
+                enriched_export["points"] = enriched_export.apply(
+                    lambda r: 5 if pd.notna(r.get("winner")) and r["winner"] == "No Result" and pd.notna(r.get("predicted_winner"))
+                    else (10 if pd.notna(r.get("winner")) and r["predicted_winner"] == r["winner"]
+                    else (0 if pd.notna(r.get("winner")) else 0)),
                     axis=1,
                 )
             else:
                 enriched_export["winner"] = None
                 enriched_export["correct"] = "Pending"
+                enriched_export["points"] = 0
             preds_csv = enriched_export[
-                ["match_id", "display_name", "team_name", "predicted_winner", "winner", "correct", "created_at"]
+                ["match_id", "display_name", "team_name", "predicted_winner", "winner", "correct", "points", "created_at"]
             ].to_csv(index=False)
             dl2.download_button(
                 "🎯 Download Predictions CSV",

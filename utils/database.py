@@ -226,29 +226,50 @@ def get_all_predictions():
 
 def compute_leaderboard():
     conn = get_connection()
+    total_matches = pd.read_sql_query("SELECT COUNT(*) AS cnt FROM match_results", conn)["cnt"].iloc[0]
+
     df = pd.read_sql_query(
         """SELECT
                u.id,
                u.display_name,
                u.team_name,
                COUNT(p.id) AS total_predictions,
-               SUM(CASE WHEN p.predicted_winner = mr.winner THEN 1 ELSE 0 END) AS correct_predictions
+               SUM(CASE WHEN mr.winner IS NOT NULL AND p.predicted_winner = mr.winner THEN 1 ELSE 0 END) AS correct_predictions,
+               SUM(
+                   CASE
+                       WHEN mr.winner IS NULL THEN 0
+                       WHEN mr.winner = 'No Result' AND p.id IS NOT NULL THEN 5
+                       WHEN p.predicted_winner = mr.winner THEN 10
+                       ELSE 0
+                   END
+               ) AS points
            FROM users u
            LEFT JOIN predictions p ON u.id = p.user_id
            LEFT JOIN match_results mr ON p.match_id = mr.match_id
            WHERE u.role = 'user'
-           GROUP BY u.id, u.display_name, u.team_name
-           ORDER BY correct_predictions DESC, total_predictions DESC""",
+           GROUP BY u.id, u.display_name, u.team_name""",
         conn,
     )
     conn.close()
+
     df["correct_predictions"] = df["correct_predictions"].fillna(0).astype(int)
     df["total_predictions"] = df["total_predictions"].fillna(0).astype(int)
+    df["points"] = df["points"].fillna(0).astype(int)
+
     df["accuracy"] = df.apply(
         lambda r: f"{(r['correct_predictions'] / r['total_predictions'] * 100):.0f}%"
         if r["total_predictions"] > 0
         else "N/A",
         axis=1,
     )
+    df["prediction_percentage"] = df["total_predictions"].apply(
+        lambda x: f"{(x / total_matches * 100):.0f}%" if total_matches > 0 else "0%"
+    )
+
+    df = df.sort_values(
+        ["points", "correct_predictions", "total_predictions"],
+        ascending=[False, False, False]
+    ).reset_index(drop=True)
+
     df.insert(0, "rank", range(1, len(df) + 1))
     return df
