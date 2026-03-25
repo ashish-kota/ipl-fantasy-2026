@@ -183,7 +183,7 @@ else:
 
                 # ── Ask QGenie button ──────────────────────────────────────
                 st.markdown("---")
-                if st.button("🤖 Ask QGenie", key=f"qgenie_btn_{mid}", use_container_width=True, help="Get a fresh AI-powered match prediction"):
+                if st.button("🤖 Ask AI", key=f"qgenie_btn_{mid}", use_container_width=True, help="Get a fresh QGenie powered prediction"):
                     with st.spinner("🤖 QGenie is analysing the match..."):
                         ai = get_ai_prediction(
                             team1=row["team1"],
