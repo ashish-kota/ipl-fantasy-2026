@@ -121,18 +121,28 @@ netsh advfirewall firewall add rule name="IPL Fantasy 8501" dir=in action=allow 
 
 ---
 
-## Step 8: Updating the App
+## Step 8: Updating the App (Deploy New Changes)
 
-When a new version is pushed to GitHub:
+**Workflow:**
+1. Develop & test on your local machine
+2. `git push origin main` from your dev machine
+3. On the VM, run:
 
 ```powershell
 cd C:\ipl-fantasy-2026
 git pull origin main
-# Restart the service
 C:\nssm\nssm.exe restart IPLFantasy
 ```
 
-Or if using Task Scheduler, just restart the task.
+**The database (`data/ipl_fantasy.db`) is gitignored — it is NEVER overwritten by `git pull`.  
+All user accounts, predictions, and match results are preserved across every deployment.**
+
+Or if using Task Scheduler instead of NSSM:
+```powershell
+cd C:\ipl-fantasy-2026
+git pull origin main
+# Then manually restart the scheduled task from Task Scheduler UI
+```
 
 ---
 
