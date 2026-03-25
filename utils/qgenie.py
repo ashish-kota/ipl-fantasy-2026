@@ -69,10 +69,26 @@ def get_ai_prediction(team1: str, team2: str, venue: str, city: str, match_date:
         raw_content = re.sub(r"\s*```$", "", raw_content.strip())
         raw_content = raw_content.strip()
 
-        result = json.loads(raw_content)
-        return result
+        # Try direct parse first
+        try:
+            return json.loads(raw_content)
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback: extract the outermost {...} block
+        start = raw_content.find("{")
+        end = raw_content.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            candidate = raw_content[start:end + 1]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+
+        # Last resort: return error with raw content for debugging
+        return {"error": f"Could not parse LLM response as JSON", "raw": raw_content[:500]}
 
     except json.JSONDecodeError as e:
-        return {"error": f"LLM returned non-JSON response: {e}", "raw": raw_content}
+        return {"error": f"LLM returned non-JSON response: {e}", "raw": raw_content[:500]}
     except Exception as e:
         return {"error": str(e)}
