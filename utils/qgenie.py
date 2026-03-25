@@ -18,12 +18,14 @@ def _load_prompt_config() -> dict:
         return json.load(f)
 
 
-def _get_client() -> QGenieClient:
+def _get_client() -> tuple:
+    """Returns (QGenieClient, model_name)"""
     api_key = st.secrets.get("QGENIE_API_KEY", "")
     endpoint = st.secrets.get("QGENIE_ENDPOINT", "https://qgenie-chat.qualcomm.com")
+    model = st.secrets.get("QGENIE_MODEL", "gpt-oss-120b")
     if not api_key:
         raise ValueError("QGENIE_API_KEY not found in .streamlit/secrets.toml")
-    return QGenieClient(endpoint=endpoint, api_key=api_key)
+    return QGenieClient(endpoint=endpoint, api_key=api_key), model
 
 
 def get_ai_prediction(team1: str, team2: str, venue: str, city: str, match_date: str, match_time: str) -> dict:
@@ -39,7 +41,7 @@ def get_ai_prediction(team1: str, team2: str, venue: str, city: str, match_date:
     """
     try:
         config = _load_prompt_config()
-        client = _get_client()
+        client, model = _get_client()
 
         user_message = config["user_template"].format(
             team1=team1,
@@ -55,8 +57,8 @@ def get_ai_prediction(team1: str, team2: str, venue: str, city: str, match_date:
                 {"role": "system", "content": config["system"]},
                 {"role": "user", "content": user_message},
             ],
-            max_tokens=config.get("max_tokens", 600),
-            model=config.get("model", "gpt-oss-120b"),
+            max_tokens=config.get("max_tokens", 2000),
+            model=model,
         )
 
         raw_content = response.choices[0].message.content.strip()
