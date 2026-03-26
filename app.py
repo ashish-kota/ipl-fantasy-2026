@@ -80,9 +80,6 @@ def show_login_page():
             with st.form("register_form"):
                 new_display = st.text_input("Full Name *", placeholder="Your full name")
                 new_email = st.text_input("Email *", placeholder="your@email.com")
-                new_team = st.text_input(
-                    "Fantasy Team Name *", placeholder="e.g. Super Strikers XI"
-                )
                 new_password = st.text_input(
                     "Password *", type="password", placeholder="Min 6 characters"
                 )
@@ -102,7 +99,7 @@ def show_login_page():
                 explicit_ok = email_lower in ALLOWED_EMAILS
                 in_whitelist = email_lower in allowed_emails if allowed_emails else False
 
-                if not all([new_display, new_email, new_team, new_password, new_password2]):
+                if not all([new_display, new_email, new_password, new_password2]):
                     st.error("Please fill in all required fields (*).")
                 elif not (in_whitelist or explicit_ok):
                     st.error("You currently dont have permission to register. Please contact the admin.")
@@ -113,7 +110,7 @@ def show_login_page():
                 elif new_password != new_password2:
                     st.error("Passwords do not match.")
                 else:
-                    ok, msg = create_user(new_email, new_password, new_display, new_team)
+                    ok, msg = create_user(new_email, new_password, new_display, None)
                     if ok:
                         st.success(msg + " Please log in.")
                     else:
