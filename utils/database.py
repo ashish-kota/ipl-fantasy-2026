@@ -53,6 +53,17 @@ def init_db():
         )
     """)
 
+    # Registration / auth logs
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS auth_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,        -- 'register_fail', 'register_success', 'login_fail', 'login_success'
+            email TEXT,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
 
     # Create default admin if not exists
@@ -137,6 +148,20 @@ def change_password(user_id, new_password):
     c = conn.cursor()
     pw_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     c.execute("UPDATE users SET password_hash=? WHERE id=?", (pw_hash, user_id))
+    conn.commit()
+    conn.close()
+
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+
+def log_auth_event(event_type, email, details):
+    """Simple logger for auth/registration events."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO auth_logs (event_type, email, details) VALUES (?, ?, ?)",
+        (event_type, (email or "").strip().lower(), details),
+    )
     conn.commit()
     conn.close()
 

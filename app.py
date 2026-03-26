@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.database import init_db, verify_user, create_user
+from utils.database import init_db, verify_user, create_user, log_auth_event
 from utils.nav import render_sidebar, HIDE_AUTO_NAV_CSS
 from utils.whitelist import load_allowed_emails
 
@@ -67,11 +67,13 @@ def show_login_page():
                 else:
                     user = verify_user(email, password)
                     if user:
+                        log_auth_event("login_success", email, "Login successful")
                         st.session_state.logged_in = True
                         st.session_state.user = user
                         st.success(f"Welcome back, {user['display_name']}! 🎉")
                         st.rerun()
                     else:
+                        log_auth_event("login_fail", email, "Invalid email or password")
                         st.error("Invalid email or password.")
 
         with tab_register:
@@ -101,19 +103,26 @@ def show_login_page():
 
                 if not all([new_display, new_email, new_password, new_password2]):
                     st.error("Please fill in all required fields (*).")
+                    log_auth_event("register_fail", new_email, "Missing required fields")
                 elif not (in_whitelist or explicit_ok):
                     st.error("You currently dont have permission to register. Please contact the admin.")
+                    log_auth_event("register_fail", new_email, "Not in whitelist")
                 elif "@" not in new_email or "." not in new_email:
                     st.error("Please enter a valid email address.")
+                    log_auth_event("register_fail", new_email, "Invalid email format")
                 elif len(new_password) < 6:
                     st.error("Password must be at least 6 characters.")
+                    log_auth_event("register_fail", new_email, "Password too short")
                 elif new_password != new_password2:
                     st.error("Passwords do not match.")
+                    log_auth_event("register_fail", new_email, "Passwords do not match")
                 else:
                     ok, msg = create_user(new_email, new_password, new_display, None)
                     if ok:
+                        log_auth_event("register_success", new_email, "Account created")
                         st.success(msg + " Please log in.")
                     else:
+                        log_auth_event("register_fail", new_email, msg)
                         st.error(msg)
 
 
