@@ -18,6 +18,21 @@ def render_sidebar(user, logout_fn):
         st.markdown(f"📧 {user.get('email', '')}")
         if user.get("role") == "admin":
             st.markdown("🔑 **Role:** Admin")
+
+        with st.expander("❓ Help / Admin Contacts", expanded=False):
+            st.markdown(
+                """
+**For any issues (login, predictions, scoring), contact:**
+
+- Shourya Kothiyal  
+- Vishwa S  
+- Mehul Agarwal  
+- Priyawart Rana  
+- Sai Kiran Kanduri  
+- Ashish Kota
+                """.strip()
+            )
+
         st.divider()
 
         # Navigation
