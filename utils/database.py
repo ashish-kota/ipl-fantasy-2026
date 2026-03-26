@@ -64,6 +64,18 @@ def init_db():
         )
     """)
 
+    # Password reset requests
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            note TEXT,
+            status TEXT DEFAULT 'pending',   -- 'pending', 'done'
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            handled_at TIMESTAMP
+        )
+    """)
+
     conn.commit()
 
     # Create default admin if not exists
@@ -148,6 +160,62 @@ def change_password(user_id, new_password):
     c = conn.cursor()
     pw_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     c.execute("UPDATE users SET password_hash=? WHERE id=?", (pw_hash, user_id))
+    conn.commit()
+    conn.close()
+
+
+def change_password_by_email(email, new_password):
+    """Helper for admin reset: change password by email."""
+    conn = get_connection()
+    c = conn.cursor()
+    pw_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    c.execute(
+        "UPDATE users SET password_hash=? WHERE email=?",
+        (pw_hash, email.strip().lower()),
+    )
+    conn.commit()
+    conn.close()
+
+
+# ── Password reset requests ───────────────────────────────────────────────────
+
+def create_password_reset_request(email, note):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO password_reset_requests (email, note) VALUES (?, ?)",
+        (email.strip().lower(), note),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_pending_password_reset_requests():
+    conn = get_connection()
+    df = pd.read_sql_query(
+        """
+        SELECT id, email, note, status, created_at
+        FROM password_reset_requests
+        WHERE status = 'pending'
+        ORDER BY created_at ASC
+        """,
+        conn,
+    )
+    conn.close()
+    return df
+
+
+def mark_password_reset_done(request_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        """
+        UPDATE password_reset_requests
+        SET status = 'done', handled_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (request_id,),
+    )
     conn.commit()
     conn.close()
 
