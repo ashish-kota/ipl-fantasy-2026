@@ -1,13 +1,7 @@
 import streamlit as st
 from utils.database import init_db, verify_user, create_user
 from utils.nav import render_sidebar, HIDE_AUTO_NAV_CSS
-
-st.set_page_config(
-    page_title="IPL Fantasy 2026",
-    page_icon="🏏",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+from utils.whitelist import load_allowed_emails
 
 init_db()
 
@@ -24,6 +18,27 @@ def logout():
 
 
 def show_login_page():
+    # Sidebar on login page
+    with st.sidebar:
+        if st.button("Help", key="login_help", type="secondary"):
+            st.session_state.show_login_help = True
+
+        if st.session_state.get("show_login_help"):
+            st.info(
+                """
+**If any issues, contact:**
+
+- Shourya Kothiyal  
+- Vishwa S  
+- Mehul Agarwal  
+- Priyawart Rana  
+- Sai Kiran Kanduri  
+- Ashish Kota
+                """.strip()
+            )
+
+        st.divider()
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown(
@@ -60,6 +75,8 @@ def show_login_page():
                         st.error("Invalid email or password.")
 
         with tab_register:
+            allowed_emails = load_allowed_emails()
+
             with st.form("register_form"):
                 new_display = st.text_input("Full Name *", placeholder="Your full name")
                 new_email = st.text_input("Email *", placeholder="your@email.com")
@@ -83,10 +100,12 @@ def show_login_page():
                 email_lower = new_email.lower().strip()
                 domain_ok = any(email_lower.endswith(d) for d in ALLOWED_DOMAINS)
                 explicit_ok = email_lower in ALLOWED_EMAILS
+                in_whitelist = email_lower in allowed_emails if allowed_emails else False
+
                 if not all([new_display, new_email, new_team, new_password, new_password2]):
                     st.error("Please fill in all required fields (*).")
-                elif not (domain_ok or explicit_ok):
-                    st.error("❌ Registration is only allowed for **@qti.qualcomm.com** email addresses.")
+                elif not (in_whitelist or explicit_ok):
+                    st.error("You currently dont have permission to register. Please contact the admin.")
                 elif "@" not in new_email or "." not in new_email:
                     st.error("Please enter a valid email address.")
                 elif len(new_password) < 6:
@@ -104,6 +123,22 @@ def show_login_page():
 def show_sidebar():
     render_sidebar(st.session_state.user, logout)
 
+
+# Dynamic page config to change sidebar label between Login and app
+if not st.session_state.logged_in:
+    st.set_page_config(
+        page_title="Login",
+        page_icon="🏏",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+else:
+    st.set_page_config(
+        page_title="IPL Fantasy 2026",
+        page_icon="🏏",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
 
 if not st.session_state.logged_in:
     show_login_page()
