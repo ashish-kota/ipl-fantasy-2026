@@ -1,5 +1,11 @@
 import streamlit as st
-from utils.database import init_db, verify_user, create_user, log_auth_event
+from utils.database import (
+    init_db,
+    verify_user,
+    create_user,
+    log_auth_event,
+    create_password_reset_request,
+)
 from utils.nav import render_sidebar, HIDE_AUTO_NAV_CSS
 from utils.whitelist import load_allowed_emails
 
@@ -75,6 +81,32 @@ def show_login_page():
                     else:
                         log_auth_event("login_fail", email, "Invalid email or password")
                         st.error("Invalid email or password.")
+
+            with st.expander("Forgot password?"):
+                st.caption(
+                    "Submit a reset request. An admin will set a new password and inform you. You will be able to change the password by going to Dashboard > My Profile"
+                )
+                with st.form("forgot_password_form"):
+                    fp_email = st.text_input(
+                        "Email *", placeholder="your@email.com", key="fp_email"
+                    )
+                    fp_note = st.text_area(
+                        "Note (optional)",
+                        placeholder="Any additional info for admins",
+                        key="fp_note",
+                    )
+                    fp_submit = st.form_submit_button(
+                        "Request Password Reset", use_container_width=True
+                    )
+
+                if fp_submit:
+                    if not fp_email:
+                        st.error("Please enter your email.")
+                    else:
+                        create_password_reset_request(fp_email, fp_note)
+                        st.success(
+                            "Password reset request submitted. Admin will reset and inform you."
+                        )
 
         with tab_register:
             allowed_emails = load_allowed_emails()
