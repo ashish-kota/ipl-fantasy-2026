@@ -59,6 +59,7 @@ if not user_preds.empty:
 
 completed_ids = set(results_df["match_id"].tolist()) if not results_df.empty else set()
 today = date.today()
+now_ts = pd.Timestamp.now()
 
 upcoming = matches_df[
     matches_df.apply(
@@ -132,6 +133,11 @@ else:
         mid = int(row["match_id"])
         match_date_str = row["match_date"].strftime("%a, %d %b %Y")
         existing_pred = pred_map.get(mid)
+        match_start = pd.to_datetime(
+            row["match_date"].strftime("%Y-%m-%d") + " " + row["match_time"],
+            errors="coerce",
+        )
+        predictions_locked = pd.notna(match_start) and now_ts >= match_start
 
         with st.container():
             st.markdown(
@@ -168,9 +174,17 @@ else:
                         index=default_idx,
                         horizontal=False,
                         key=f"radio_{mid}",
+                        disabled=predictions_locked,
                     )
                     btn_label = "Update Pick ✏️" if existing_pred else "Submit Pick 🎯"
-                    submitted = st.form_submit_button(btn_label, use_container_width=True)
+                    submitted = st.form_submit_button(
+                        btn_label,
+                        use_container_width=True,
+                        disabled=predictions_locked,
+                    )
+
+                if predictions_locked:
+                    st.warning("⏳ Predictions closed — match has started.")
 
                 if submitted:
                     ok, msg = save_prediction(user["id"], mid, choice)

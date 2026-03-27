@@ -239,6 +239,10 @@ def log_auth_event(event_type, email, details):
 def load_matches():
     df = pd.read_csv("data/matches.csv")
     df["match_date"] = pd.to_datetime(df["match_date"])
+    df["match_start"] = pd.to_datetime(
+        df["match_date"].dt.strftime("%Y-%m-%d") + " " + df["match_time"],
+        errors="coerce",
+    )
     return df
 
 
@@ -275,6 +279,19 @@ def get_all_results():
 # ── Predictions ───────────────────────────────────────────────────────────────
 
 def save_prediction(user_id, match_id, predicted_winner):
+    matches = load_matches()
+    row = matches[matches["match_id"] == match_id]
+
+    if row.empty:
+        return False, "Match not found."
+
+    match_start = row.iloc[0]["match_start"]
+    if pd.isna(match_start):
+        return False, "Match start time is invalid."
+
+    if pd.Timestamp.now() >= match_start:
+        return False, "Predictions are closed for this match."
+
     conn = get_connection()
     c = conn.cursor()
     try:
