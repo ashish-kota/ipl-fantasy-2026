@@ -237,7 +237,34 @@ def log_auth_event(event_type, email, details):
 # ── Matches ───────────────────────────────────────────────────────────────────
 
 def load_matches():
-    df = pd.read_csv("data/matches.csv")
+    xlsx_path = "data/matches.xlsx"
+    csv_path = "data/matches.csv"
+
+    if os.path.exists(xlsx_path):
+        raw = pd.read_excel(xlsx_path, sheet_name="Schedule")
+        df = pd.DataFrame(
+            {
+                "match_id": raw["MatchNo"],
+                "match_date": pd.to_datetime(raw["MatchDate"]),
+                "match_time": raw["StartTime"].astype(str),
+                "team1": raw["HomeTeam"],
+                "team2": raw["AwayTeam"],
+                "venue": raw["HomeTeam"],
+                "city": raw["City"],
+            }
+        )
+
+        if "StartDateTime" in raw.columns:
+            df["match_start"] = pd.to_datetime(raw["StartDateTime"], errors="coerce")
+        else:
+            df["match_start"] = pd.to_datetime(
+                df["match_date"].dt.strftime("%Y-%m-%d") + " " + df["match_time"],
+                errors="coerce",
+            )
+
+        return df
+
+    df = pd.read_csv(csv_path)
     df["match_date"] = pd.to_datetime(df["match_date"])
     df["match_start"] = pd.to_datetime(
         df["match_date"].dt.strftime("%Y-%m-%d") + " " + df["match_time"],

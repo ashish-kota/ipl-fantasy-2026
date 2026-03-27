@@ -52,7 +52,7 @@ render_sidebar(user, logout)
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.title("⚙️ Admin Panel")
-st.markdown("Manage match results, view all predictions, oversee users, and handle password resets.")
+st.markdown("Manage match results, view all predictions, oversee users, handle password resets, and manage the match schedule.")
 st.divider()
 
 # ── Load data ─────────────────────────────────────────────────────────────────
@@ -453,37 +453,36 @@ with tab_resets:
 with tab_upload:
     st.subheader("📤 Upload Match Schedule")
     st.markdown(
-        "Upload a new `matches.csv` to update the match schedule. "
-        "The file must have these columns: "
-        "`match_id, match_date, match_time, team1, team2, venue, city`"
+        "Upload a new `matches.xlsx` to update the match schedule. "
+        "The workbook should contain a sheet named `Schedule` with columns like "
+        "`MatchNo, MatchDate, StartTime, StartDateTime, City, HomeTeam, AwayTeam`."
     )
 
-    st.markdown("**Required CSV format:**")
+    st.markdown("**Expected Excel columns:**")
     sample = pd.DataFrame(
         {
-            "match_id": [1, 2],
-            "match_date": ["2026-03-22", "2026-03-23"],
-            "match_time": ["19:30", "15:30"],
-            "team1": ["Mumbai Indians", "Chennai Super Kings"],
-            "team2": ["Chennai Super Kings", "Royal Challengers Bengaluru"],
-            "venue": ["Wankhede Stadium", "MA Chidambaram Stadium"],
-            "city": ["Mumbai", "Chennai"],
+            "MatchNo": [1, 2],
+            "MatchDate": ["2026-03-28", "2026-03-29"],
+            "StartTime": ["7:30 PM", "7:30 PM"],
+            "StartDateTime": ["2026-03-28 19:30:00", "2026-03-29 19:30:00"],
+            "City": ["Hyderabad", "Kolkata"],
+            "HomeTeam": ["Royal Challengers Bengaluru", "Mumbai Indians"],
+            "AwayTeam": ["Sunrisers Hyderabad", "Kolkata Knight Riders"],
         }
     )
     st.dataframe(sample, use_container_width=True, hide_index=True)
 
-    uploaded = st.file_uploader("Choose matches.csv", type=["csv"])
+    uploaded = st.file_uploader("Choose matches.xlsx", type=["xlsx"])
     if uploaded:
         try:
-            new_df = pd.read_csv(uploaded)
+            new_df = pd.read_excel(uploaded, sheet_name="Schedule")
             required_cols = {
-                "match_id",
-                "match_date",
-                "match_time",
-                "team1",
-                "team2",
-                "venue",
-                "city",
+                "MatchNo",
+                "MatchDate",
+                "StartTime",
+                "City",
+                "HomeTeam",
+                "AwayTeam",
             }
             if not required_cols.issubset(set(new_df.columns)):
                 missing = required_cols - set(new_df.columns)
@@ -494,7 +493,8 @@ with tab_upload:
                 if st.button(
                     "💾 Save as new schedule", use_container_width=True
                 ):
-                    new_df.to_csv("data/matches.csv", index=False)
+                    with open("data/matches.xlsx", "wb") as f:
+                        f.write(uploaded.getbuffer())
                     st.success("Schedule updated! Refresh the app to see changes.")
         except Exception as e:
             st.error(f"Error reading file: {e}")
