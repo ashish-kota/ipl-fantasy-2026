@@ -139,7 +139,7 @@ with tab_results:
                     st.warning("⏳ No result entered yet")
 
             with col_form:
-                options = [row["team1"], row["team2"]]
+                options = [row["team1"], row["team2"], "No Result"]
                 default_idx = 0
                 if pd.notna(current_winner) and current_winner in options:
                     default_idx = options.index(current_winner)
