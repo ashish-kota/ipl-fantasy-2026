@@ -125,6 +125,7 @@ def show_login_page():
                 )
 
             ALLOWED_DOMAINS = ["@qti.qualcomm.com"]
+            ALLOWED_DOMAINS = ["@qualcomm.com"]
             ALLOWED_EMAILS = ["admin@iplf.com"]
 
             if reg_submitted:
