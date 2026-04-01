@@ -22,7 +22,7 @@ user = st.session_state.user
 
 # ── Admin guard ───────────────────────────────────────────────────────────────
 if user.get("role") != "admin":
-    st.error("🔒 The Leaderboard is only visible to admins. Rankings will be revealed at the end of the tournament!")
+    st.error("🔒 The Leaderboard is only visible to admins. Rankings will be revealed at the end of the week!")
     st.stop()
 
 
