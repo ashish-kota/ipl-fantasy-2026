@@ -86,7 +86,6 @@ with tab_table:
                         f"background:#1a1a2e; border-radius:12px; color:white;'>"
                         f"<div style='font-size:2em;'>{medal}</div>"
                         f"<b>{row['display_name']}</b><br>"
-                        f"<span style='color:#aaa;'>{row['team_name']}</span><br>"
                         f"<span style='color:#ffd700; font-size:1.3em;'>"
                         f"{int(row['points'])} pts</span><br>"
                         f"<span style='color:#aaa; font-size:0.85em;'>"
@@ -97,8 +96,8 @@ with tab_table:
         st.divider()
 
     # Full table
-    display_lb = lb[["rank", "display_name", "team_name", "points", "correct_predictions", "total_predictions", "accuracy"]].copy()
-    display_lb.columns = ["Rank", "Player", "Fantasy Team", "Points", "Correct Picks", "Total Predictions", "Accuracy"]
+    display_lb = lb[["rank", "display_name", "points", "correct_predictions", "total_predictions", "accuracy"]].copy()
+    display_lb.columns = ["Rank", "Player", "Points", "Correct Picks", "Total Predictions", "Accuracy"]
 
     # Highlight current user
     def highlight_user(row):

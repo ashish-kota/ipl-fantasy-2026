@@ -91,6 +91,7 @@ if pending_upcoming > 0:
 st.divider()
 
 # ── Helper: encode image to base64 ───────────────────────────────────────────
+@st.cache_data(show_spinner=False)
 def img_to_b64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
@@ -123,13 +124,8 @@ def team_card(team_name: str, is_selected: bool):
     st.markdown(html, unsafe_allow_html=True)
 
 
-# ── Upcoming matches ──────────────────────────────────────────────────────────
-st.subheader("📅 Upcoming Matches — Make Your Picks")
-
-if upcoming.empty:
-    st.info("No upcoming matches to predict right now. Check back later!")
-else:
-    for _, row in upcoming.iterrows():
+def render_match_cards(df):
+    for _, row in df.iterrows():
         mid = int(row["match_id"])
         match_date_str = row["match_date"].strftime("%a, %d %b %Y")
         existing_pred = pred_map.get(mid)
@@ -241,6 +237,27 @@ else:
                                     st.markdown("---")
 
             st.divider()
+
+
+# ── Upcoming matches ──────────────────────────────────────────────────────────
+st.subheader("📅 Upcoming Matches — Make Your Picks")
+
+today_matches = upcoming[upcoming["match_date"].dt.date == today]
+future_matches = upcoming[upcoming["match_date"].dt.date > today]
+priority_upcoming = pd.concat([today_matches, future_matches.head(3)], ignore_index=True)
+remaining_upcoming = future_matches.iloc[3:]
+
+if upcoming.empty:
+    st.info("No upcoming matches to predict right now. Check back later!")
+else:
+    render_match_cards(priority_upcoming)
+
+    if not remaining_upcoming.empty:
+        with st.expander(
+            f"📂 Show remaining upcoming matches ({len(remaining_upcoming)})",
+            expanded=False,
+        ):
+            render_match_cards(remaining_upcoming)
 
 
 # ── Past matches ──────────────────────────────────────────────────────────────

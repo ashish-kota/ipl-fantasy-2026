@@ -172,20 +172,18 @@ with tab_profile:
         with st.form("profile_form"):
             upd_name = st.text_input("Full Name", value=user.get("display_name", ""))
             upd_email = st.text_input("Email", value=user.get("email", "") or "")
-            upd_team = st.text_input("Fantasy Team Name", value=user.get("team_name", "") or "")
             if st.form_submit_button("Save Changes", use_container_width=True):
-                if upd_name and upd_team and upd_email:
+                if upd_name and upd_email:
                     if "@" not in upd_email or "." not in upd_email:
                         st.error("Please enter a valid email address.")
                     else:
-                        update_user_profile(user["id"], upd_name, upd_email, upd_team)
+                        update_user_profile(user["id"], upd_name, upd_email, user.get("team_name", "") or "")
                         st.session_state.user["display_name"] = upd_name
                         st.session_state.user["email"] = upd_email
-                        st.session_state.user["team_name"] = upd_team
                         st.success("Profile updated!")
                         st.rerun()
                 else:
-                    st.error("Name, Email and Team Name are required.")
+                    st.error("Name and Email are required.")
 
     with col_p2:
         st.markdown("**Change Password**")

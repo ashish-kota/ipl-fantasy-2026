@@ -14,7 +14,6 @@ def render_sidebar(user, logout_fn):
     with st.sidebar:
         # User info
         st.markdown(f"### 👤 {user['display_name']}")
-        st.markdown(f"🏏 **Team:** {user.get('team_name', '—')}")
         st.markdown(f"📧 {user.get('email', '')}")
         if user.get("role") == "admin":
             st.markdown("🔑 **Role:** Admin")

@@ -399,26 +399,51 @@ def compute_leaderboard():
     df["total_predictions"] = df["total_predictions"].fillna(0).astype(int)
     df["points"] = df["points"].fillna(0).astype(int)
 
-    df["accuracy"] = df.apply(
-        lambda r: f"{(r['correct_predictions'] / r['total_predictions'] * 100):.0f}%"
-        if r["total_predictions"] > 0
-        else "N/A",
+    completed_predictions = pd.read_sql_query(
+        """SELECT
+               p.user_id,
+               COUNT(*) AS completed_predictions
+           FROM predictions p
+           JOIN match_results mr ON p.match_id = mr.match_id
+           GROUP BY p.user_id""",
+        get_connection(),
+    )
+
+    if not completed_predictions.empty:
+        df = df.merge(
+            completed_predictions,
+            left_on="id",
+            right_on="user_id",
+            how="left",
+        )
+        df = df.drop(columns=["user_id"])
+    else:
+        df["completed_predictions"] = 0
+
+    df["completed_predictions"] = df["completed_predictions"].fillna(0).astype(int)
+
+    df["accuracy_value"] = df.apply(
+        lambda r: (r["correct_predictions"] / r["completed_predictions"])
+        if r["completed_predictions"] > 0
+        else -1,
         axis=1,
     )
 
-    # Prediction % = predictions made for completed matches / completed matches
+    df["accuracy"] = df["accuracy_value"].apply(
+        lambda v: f"{v * 100:.0f}%" if v >= 0 else "N/A"
+    )
+
+    # Prediction % = completed predictions / matches with results updated
     def compute_pred_pct(row):
         if total_completed <= 0:
             return "0%"
-        # Only predictions where the match has a result
-        # (total_predictions already counts all predictions; this is a simple coverage vs completed)
-        return f"{(row['total_predictions'] / total_completed * 100):.0f}%"
+        return f"{(row['completed_predictions'] / total_completed * 100):.0f}%"
 
     df["prediction_percentage"] = df.apply(compute_pred_pct, axis=1)
 
     df = df.sort_values(
-        ["points", "correct_predictions", "total_predictions"],
-        ascending=[False, False, False],
+        ["points", "accuracy_value", "completed_predictions", "total_predictions"],
+        ascending=[False, False, False, False],
     ).reset_index(drop=True)
 
     df.insert(0, "rank", range(1, len(df) + 1))

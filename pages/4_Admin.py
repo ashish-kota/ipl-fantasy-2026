@@ -176,9 +176,9 @@ with tab_users:
         st.info("No users registered yet.")
     else:
         display_users = regular_users[
-            ["id", "display_name", "email", "team_name", "created_at"]
+            ["id", "display_name", "email", "created_at"]
         ].copy()
-        display_users.columns = ["ID", "Name", "Email", "Fantasy Team", "Joined"]
+        display_users.columns = ["ID", "Name", "Email", "Joined"]
         display_users["Joined"] = pd.to_datetime(display_users["Joined"]).dt.strftime(
             "%d %b %Y"
         )
@@ -237,7 +237,6 @@ with tab_predictions:
             [
                 "match_id",
                 "display_name",
-                "team_name",
                 "predicted_winner",
                 "winner",
                 "correct",
@@ -247,7 +246,6 @@ with tab_predictions:
         display_preds.columns = [
             "Match #",
             "Player",
-            "Fantasy Team",
             "Predicted Winner",
             "Actual Winner",
             "Result",
@@ -303,7 +301,6 @@ with tab_leaderboard:
                         f"background:#1a1a2e; border-radius:12px; color:white;'>"
                         f"<div style='font-size:2em;'>{medal}</div>"
                         f"<b>{row['display_name']}</b><br>"
-                        f"<span style='color:#aaa;'>{row['team_name']}</span><br>"
                         f"<span style='color:#ffd700; font-size:1.3em;'>"
                         f"{int(row['points'])} pts</span><br>"
                         f"<span style='color:#aaa; font-size:0.85em;'>"
@@ -318,7 +315,6 @@ with tab_leaderboard:
             [
                 "rank",
                 "display_name",
-                "team_name",
                 "points",
                 "correct_predictions",
                 "total_predictions",
@@ -329,7 +325,6 @@ with tab_leaderboard:
         display_lb.columns = [
             "Rank",
             "Player",
-            "Fantasy Team",
             "Points",
             "Correct Picks",
             "Total Predictions",
@@ -377,7 +372,6 @@ with tab_leaderboard:
                 [
                     "match_id",
                     "display_name",
-                    "team_name",
                     "predicted_winner",
                     "winner",
                     "correct",
@@ -393,9 +387,9 @@ with tab_leaderboard:
             )
 
         users_export = all_users[all_users["role"] == "user"][
-            ["id", "display_name", "email", "team_name", "created_at"]
+            ["id", "display_name", "email", "created_at"]
         ].copy()
-        users_export.columns = ["ID", "Name", "Email", "Fantasy Team", "Joined"]
+        users_export.columns = ["ID", "Name", "Email", "Joined"]
         users_csv = users_export.to_csv(index=False)
         dl3.download_button(
             "👥 Download Users CSV",
